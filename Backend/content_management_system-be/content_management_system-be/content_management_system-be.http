@@ -1,0 +1,6 @@
+@content_management_system_be_HostAddress = http://localhost:5103
+
+GET {{content_management_system_be_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
