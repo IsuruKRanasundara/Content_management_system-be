@@ -23,6 +23,22 @@ builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IContentTagService, ContentTagService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 
+var allowedOrigins = new[]
+{
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://your-frontend.com"
+};
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials());
+});
+
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key configuration is missing");
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
@@ -62,6 +78,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
