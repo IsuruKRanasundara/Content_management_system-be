@@ -5,6 +5,55 @@ import type { Content } from '../types';
 import { Edit, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+const extractImageMarkdown = (text: string) => {
+  // Match both absolute URLs and relative paths
+  const regex = /!\[[^\]]*]\(([^)]+)\)/g;
+  const urls: string[] = [];
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    urls.push(match[1]);
+  }
+  return urls;
+};
+
+const renderBodyWithImages = (text: string) => {
+  // Match both absolute URLs and relative paths
+  const imageRegex = /!\[[^\]]*]\(([^)]+)\)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  const pushText = (slice: string, keyPrefix: string) => {
+    if (!slice) return;
+    const lines = slice.split('\n');
+    lines.forEach((line, idx) => {
+      parts.push(<span key={`${keyPrefix}-line-${idx}`}>{line}</span>);
+      if (idx < lines.length - 1) {
+        parts.push(<br key={`${keyPrefix}-br-${idx}`} />);
+      }
+    });
+  };
+
+  while ((match = imageRegex.exec(text)) !== null) {
+    const [fullMatch, url] = match;
+    const matchIndex = match.index ?? 0;
+    pushText(text.slice(lastIndex, matchIndex), `text-${lastIndex}`);
+    parts.push(
+      <div key={`img-${matchIndex}`} style={{ margin: '0.75rem 0' }}>
+        <img
+          src={url}
+          alt=""
+          style={{ maxWidth: '100%', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}
+        />
+      </div>
+    );
+    lastIndex = matchIndex + fullMatch.length;
+  }
+
+  pushText(text.slice(lastIndex), `text-${lastIndex}`);
+  return parts;
+};
+
 const ContentList: React.FC = () => {
   const [contents, setContents] = useState<Content[]>([]);
   const [previewContent, setPreviewContent] = useState<Content | null>(null);
@@ -189,11 +238,11 @@ const ContentList: React.FC = () => {
                 border: 'none',
                 fontSize: '1.25rem',
                 cursor: 'pointer',
-              }}
-              aria-label="Close preview"
-            >
-              ×
-            </button>
+            }}
+            aria-label="Close preview"
+          >
+              x
+          </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
               <span style={{ 
                 padding: '0.25rem 0.75rem', 
@@ -212,9 +261,27 @@ const ContentList: React.FC = () => {
               )}
             </div>
             <h2 style={{ margin: '0 0 0.75rem 0' }}>{previewContent.title}</h2>
-            <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-              {previewContent.body}
+            <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {renderBodyWithImages(previewContent.body)}
             </div>
+            {extractImageMarkdown(previewContent.body).length > 0 && (
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {extractImageMarkdown(previewContent.body).map((url, idx) => (
+                  <img
+                    key={`thumb-${idx}`}
+                    src={url}
+                    alt=""
+                    style={{
+                      width: '120px',
+                      height: '80px',
+                      objectFit: 'cover',
+                      borderRadius: '0.375rem',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

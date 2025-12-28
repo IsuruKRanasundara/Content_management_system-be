@@ -113,35 +113,31 @@ const ContentEditor: React.FC = () => {
       const user = userStr ? JSON.parse(userStr) : null;
       const userId = user?.userId || user?.id;
 
-      // For each file, create media metadata record
-      const mediaPromises = Array.from(files).map(async (file) => {
-        // In a real app, you would upload the file to cloud storage first
-        // For now, we'll create a local URL for preview
-        const fileUrl = URL.createObjectURL(file);
-        
-        // Create media metadata as per API specification
-        const mediaData = {
-          fileName: file.name,
-          fileType: file.type,
-          fileUrl: fileUrl, // In production, this would be the actual uploaded URL
-          contentId: null, // Will be set when content is created
-          uploadedBy: userId
-        };
+      // Upload each file to the backend
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (userId) {
+          formData.append('userId', userId.toString());
+        }
 
-        console.log('📤 Creating media metadata:', mediaData);
-        const response = await api.post('/media', mediaData);
-        console.log('✅ Media metadata created:', response.data);
+        console.log('📤 Uploading file:', file.name);
+        const response = await api.post('/media/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        console.log('✅ File uploaded:', response.data);
         return response.data;
       });
 
-      const mediaResults = await Promise.all(mediaPromises);
+      const uploadResults = await Promise.all(uploadPromises);
       
-      // Store uploaded media URLs and IDs
-      const mediaUrls = mediaResults.map((item: any) => item.fileUrl);
-      const mediaIds = mediaResults.map((item: any) => item.mediaId);
+      // Store uploaded media URLs - use relative paths so proxy works
+      const mediaUrls = uploadResults.map((item: any) => item.fileUrl);
       
       setUploadedMedia(prev => [...prev, ...mediaUrls]);
-      console.log('✅ All media uploaded:', { urls: mediaUrls, ids: mediaIds });
+      console.log('✅ All media uploaded:', mediaUrls);
     } catch (error: any) {
       console.error('❌ Failed to upload media:', error);
       console.error('❌ Error details:', error.response?.data);
