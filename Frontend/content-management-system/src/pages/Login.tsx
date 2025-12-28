@@ -18,9 +18,13 @@ const Login: React.FC = () => {
     setError('');
     try {
       const response = await api.post('/auth/login', { email, password });
+      console.log('Login response:', response.data);
+      console.log('Token received:', response.data.token);
       login(response.data.token, response.data.user);
+      console.log('Token saved to localStorage');
       navigate('/contents');
     } catch (err: any) {
+      console.error('Login failed:', err.response?.data);
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);

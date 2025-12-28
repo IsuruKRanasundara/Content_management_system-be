@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
-import { Save, X } from 'lucide-react';
+import { Save, X, Upload, Bold, Italic, List, AlignLeft, Image as ImageIcon } from 'lucide-react';
 
 const ContentEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +13,23 @@ const ContentEditor: React.FC = () => {
   const [status, setStatus] = useState<'Draft' | 'Published'>('Draft');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadedMedia, setUploadedMedia] = useState<string[]>([]);
+  const [mediaUrl, setMediaUrl] = useState('');
+  
+  // Formatting preferences
+  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [fontFamily, setFontFamily] = useState<string>('Arial');
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right' | 'justify'>('left');
+
+  const fontSizes = {
+    small: '14px',
+    medium: '16px',
+    large: '18px'
+  };
+
+  const fontFamilies = ['Arial', 'Times New Roman', 'Georgia', 'Courier New', 'Verdana', 'Helvetica'];
 
   useEffect(() => {
     if (isEditing) {
@@ -28,27 +45,146 @@ const ContentEditor: React.FC = () => {
       setBody(body);
       setStatus(status);
       setCategoryId(categoryId);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch content', error);
+      setError(error.response?.data?.message || 'Failed to load content. Please try again.');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const data = { title, body, status, categoryId };
+    setError('');
+    
+    // Debug: Check token before making request
+    const token = localStorage.getItem('token');
+    console.log('📝 Submitting content, token exists:', !!token);
+    if (token) {
+      console.log('🔑 Token preview:', token.substring(0, 20) + '...');
+      console.log('🔑 Full token length:', token.length);
+    }
+    
+    // Prepare content with formatting metadata
+    const contentWithFormatting = {
+      title,
+      body,
+      status,
+      categoryId,
+      metadata: JSON.stringify({
+        fontSize,
+        fontFamily,
+        textAlign,
+        uploadedMedia
+      })
+    };
+    
+    console.log('📤 Sending data:', contentWithFormatting);
 
     try {
+      let response;
       if (isEditing) {
-        await api.put(`/contents/${id}`, data);
+        response = await api.put(`/contents/${id}`, contentWithFormatting);
       } else {
-        await api.post('/contents', data);
+        response = await api.post('/contents', contentWithFormatting);
       }
+      console.log('✅ Content saved successfully:', response.data);
       navigate('/contents');
-    } catch (error) {
-      console.error('Failed to save content', error);
+    } catch (error: any) {
+      console.error('❌ Failed to save content:', error);
+      console.error('❌ Error details:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error headers:', error.response?.headers);
+      setError(error.response?.data?.message || error.message || 'Failed to save content. Please check your authentication and try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingMedia(true);
+    setError('');
+
+    try {
+      // Get user ID from localStorage
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const userId = user?.userId || user?.id;
+
+      // For each file, create media metadata record
+      const mediaPromises = Array.from(files).map(async (file) => {
+        // In a real app, you would upload the file to cloud storage first
+        // For now, we'll create a local URL for preview
+        const fileUrl = URL.createObjectURL(file);
+        
+        // Create media metadata as per API specification
+        const mediaData = {
+          fileName: file.name,
+          fileType: file.type,
+          fileUrl: fileUrl, // In production, this would be the actual uploaded URL
+          contentId: null, // Will be set when content is created
+          uploadedBy: userId
+        };
+
+        console.log('📤 Creating media metadata:', mediaData);
+        const response = await api.post('/media', mediaData);
+        console.log('✅ Media metadata created:', response.data);
+        return response.data;
+      });
+
+      const mediaResults = await Promise.all(mediaPromises);
+      
+      // Store uploaded media URLs and IDs
+      const mediaUrls = mediaResults.map((item: any) => item.fileUrl);
+      const mediaIds = mediaResults.map((item: any) => item.mediaId);
+      
+      setUploadedMedia(prev => [...prev, ...mediaUrls]);
+      console.log('✅ All media uploaded:', { urls: mediaUrls, ids: mediaIds });
+    } catch (error: any) {
+      console.error('❌ Failed to upload media:', error);
+      console.error('❌ Error details:', error.response?.data);
+      setError(error.response?.data?.message || 'Failed to upload media. Please try again.');
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const insertTextFormatting = (formatType: 'bold' | 'italic' | 'list') => {
+    const textarea = document.getElementById('contentBody') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = body.substring(start, end);
+    let formattedText = '';
+
+    switch (formatType) {
+      case 'bold':
+        formattedText = `**${selectedText || 'bold text'}**`;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText || 'italic text'}*`;
+        break;
+      case 'list':
+        formattedText = `\n- ${selectedText || 'list item'}\n`;
+        break;
+    }
+
+    const newBody = body.substring(0, start) + formattedText + body.substring(end);
+    setBody(newBody);
+  };
+
+  const insertMediaLink = (mediaUrl: string) => {
+    setBody(prev => `${prev}\n![Image](${mediaUrl})\n`);
+  };
+
+  const addMediaUrl = () => {
+    if (mediaUrl.trim()) {
+      setUploadedMedia(prev => [...prev, mediaUrl.trim()]);
+      setMediaUrl('');
+      console.log('✅ Media URL added:', mediaUrl);
     }
   };
 
@@ -63,8 +199,22 @@ const ContentEditor: React.FC = () => {
         </p>
       </div>
 
+      {error && (
+        <div style={{ 
+          color: '#ef4444', 
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          marginBottom: '1.5rem',
+          border: '1px solid rgba(239, 68, 68, 0.3)'
+        }}>
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="card" style={{ padding: '2rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Title Input */}
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Title *</label>
             <input
@@ -76,17 +226,267 @@ const ContentEditor: React.FC = () => {
               style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
             />
           </div>
-          
+
+          {/* Formatting Preferences */}
+          <div style={{ 
+            backgroundColor: 'var(--bg-secondary)', 
+            padding: '1rem', 
+            borderRadius: '0.5rem',
+            border: '1px solid var(--border-color)'
+          }}>
+            <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.9rem' }}>
+              Content Formatting Preferences
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Font Size
+                </label>
+                <select
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value as 'small' | 'medium' | 'large')}
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '0.9rem' }}
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Font Family
+                </label>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '0.9rem' }}
+                >
+                  {fontFamilies.map(font => (
+                    <option key={font} value={font}>{font}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Text Align
+                </label>
+                <select
+                  value={textAlign}
+                  onChange={(e) => setTextAlign(e.target.value as 'left' | 'center' | 'right' | 'justify')}
+                  style={{ width: '100%', padding: '0.5rem', fontSize: '0.9rem' }}
+                >
+                  <option value="left">Left</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                  <option value="justify">Justify</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Formatting Toolbar */}
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Content Body *</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+              Content Body * 
+              <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
+                (Supports Markdown)
+              </span>
+            </label>
+            
+            <div style={{ 
+              display: 'flex', 
+              gap: '0.5rem', 
+              marginBottom: '0.5rem',
+              padding: '0.5rem',
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border-color)',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                type="button"
+                onClick={() => insertTextFormatting('bold')}
+                title="Bold (Markdown: **text**)"
+                style={{
+                  padding: '0.5rem',
+                  
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '0.25rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <Bold size={16} /> <span style={{ fontSize: '0.85rem' }}>Bold</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => insertTextFormatting('italic')}
+                title="Italic (Markdown: *text*)"
+                style={{
+                  padding: '0.5rem',
+            
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '0.25rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <Italic size={16} /> <span style={{ fontSize: '0.85rem' }}>Italic</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => insertTextFormatting('list')}
+                title="List (Markdown: - item)"
+                style={{
+                  padding: '0.5rem',
+                  
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '0.25rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <List size={16} /> <span style={{ fontSize: '0.85rem' }}>List</span>
+              </button>
+
+              <div style={{ 
+                borderLeft: '1px solid var(--border-color)', 
+                margin: '0 0.25rem',
+                height: 'auto'
+              }} />
+
+              <label style={{
+                padding: '0.5rem',
+              
+                border: '1px solid var(--border-color)',
+                borderRadius: '0.25rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}>
+                <Upload size={16} />
+                <span style={{ fontSize: '0.85rem' }}>
+                  {uploadingMedia ? 'Uploading...' : 'Upload Media'}
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*"
+                  onChange={handleMediaUpload}
+                  disabled={uploadingMedia}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
+
+            {/* Add Media URL Section */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '0.5rem', 
+              marginBottom: '0.5rem',
+              alignItems: 'center'
+            }}>
+              <input
+                type="url"
+                value={mediaUrl}
+                onChange={(e) => setMediaUrl(e.target.value)}
+                placeholder="Or paste media URL (https://...)"
+                style={{ 
+                  flex: 1,
+                  padding: '0.5rem', 
+                  fontSize: '0.85rem',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '0.25rem'
+                }}
+              />
+              <button
+                type="button"
+                onClick={addMediaUrl}
+                disabled={!mediaUrl.trim()}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: mediaUrl.trim() ? 'var(--accent-primary)' : '#e69419ff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.25rem',
+                  cursor: mediaUrl.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: '0.85rem',
+                  fontWeight: 600
+                }}
+              >
+                Add URL
+              </button>
+            </div>
+            
             <textarea
+              id="contentBody"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               required
               rows={12}
-              placeholder="Write your content here..."
-              style={{ width: '100%', resize: 'vertical', padding: '0.75rem', fontSize: '1rem', lineHeight: 1.6 }}
+              placeholder="Write your content here... You can use Markdown formatting."
+              style={{ 
+                width: '100%', 
+                resize: 'vertical', 
+                padding: '0.75rem', 
+                fontSize: fontSizes[fontSize],
+                fontFamily: fontFamily,
+                textAlign: textAlign,
+                lineHeight: 1.6 
+              }}
             />
+            
+            {/* Uploaded Media Preview */}
+            {uploadedMedia.length > 0 && (
+              <div style={{ 
+                marginTop: '0.75rem',
+                padding: '0.75rem',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <ImageIcon size={16} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Uploaded Media</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {uploadedMedia.map((url, index) => (
+                    <div key={index} style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        onClick={() => insertMediaLink(url)}
+                        title="Click to insert into content"
+                        style={{
+                          padding: '0.5rem',
+                          backgroundColor: 'white',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '0.25rem',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          maxWidth: '150px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        📎 Media {index + 1}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>

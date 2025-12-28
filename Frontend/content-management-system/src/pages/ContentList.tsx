@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 
 const ContentList: React.FC = () => {
   const [contents, setContents] = useState<Content[]>([]);
+  const [previewContent, setPreviewContent] = useState<Content | null>(null);
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -66,6 +67,7 @@ const ContentList: React.FC = () => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = 'none';
             }}
+            onClick={() => setPreviewContent(content)}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
               <h3 style={{ marginTop: 0, fontSize: '1.25rem', fontWeight: 600 }}>{content.title}</h3>
@@ -111,11 +113,15 @@ const ContentList: React.FC = () => {
                     textDecoration: 'none',
                     fontWeight: 500
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <Edit size={16} /> Edit
                 </Link>
                 <button 
-                  onClick={() => handleDelete(content.contentId)} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(content.contentId);
+                  }} 
                   style={{ 
                     padding: '0.5rem 1rem', 
                     borderRadius: '0.375rem', 
@@ -144,6 +150,72 @@ const ContentList: React.FC = () => {
               Create Your First Content
             </Link>
           )}
+        </div>
+      )}
+
+      {previewContent && (
+        <div
+          onClick={() => setPreviewContent(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            zIndex: 999,
+          }}
+        >
+          <div
+            className="card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              padding: '1.5rem',
+              position: 'relative',
+            }}
+          >
+            <button
+              onClick={() => setPreviewContent(null)}
+              style={{
+                position: 'absolute',
+                top: '0.75rem',
+                right: '0.75rem',
+                background: 'transparent',
+                border: 'none',
+                fontSize: '1.25rem',
+                cursor: 'pointer',
+              }}
+              aria-label="Close preview"
+            >
+              ×
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <span style={{ 
+                padding: '0.25rem 0.75rem', 
+                borderRadius: '9999px', 
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                backgroundColor: previewContent.status === 'Published' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(249, 115, 22, 0.1)',
+                color: previewContent.status === 'Published' ? '#10b981' : 'var(--accent-primary)'
+              }}>
+                {previewContent.status}
+              </span>
+              {previewContent.categoryId && (
+                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                  Category ID: {previewContent.categoryId}
+                </span>
+              )}
+            </div>
+            <h2 style={{ margin: '0 0 0.75rem 0' }}>{previewContent.title}</h2>
+            <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+              {previewContent.body}
+            </div>
+          </div>
         </div>
       )}
     </div>
