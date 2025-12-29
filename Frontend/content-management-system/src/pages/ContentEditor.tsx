@@ -185,12 +185,12 @@ const ContentEditor: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem 1rem', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
+        <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', marginBottom: '0.5rem', margin: 0 }}>
           {isEditing ? 'Edit Content' : 'Create New Content'}
         </h2>
-        <p style={{ color: 'var(--text-secondary)' }}>
+        <p style={{ color: 'var(--text-secondary)', margin: '0.5rem 0 0 0' }}>
           {isEditing ? 'Update your content details' : 'Fill in the details to create new content'}
         </p>
       </div>
@@ -299,24 +299,27 @@ const ContentEditor: React.FC = () => {
               backgroundColor: 'var(--bg-secondary)',
               borderRadius: '0.5rem',
               border: '1px solid var(--border-color)',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              alignItems: 'center'
             }}>
               <button
                 type="button"
                 onClick={() => insertTextFormatting('bold')}
                 title="Bold (Markdown: **text**)"
                 style={{
-                  padding: '0.5rem',
-                  
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'var(--bg-primary)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '0.25rem',
+                  borderRadius: '0.375rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.25rem'
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.875rem'
                 }}
               >
-                <Bold size={16} /> <span style={{ fontSize: '0.85rem' }}>Bold</span>
+                <Bold size={16} /> Bold
               </button>
               
               <button
@@ -324,17 +327,19 @@ const ContentEditor: React.FC = () => {
                 onClick={() => insertTextFormatting('italic')}
                 title="Italic (Markdown: *text*)"
                 style={{
-                  padding: '0.5rem',
-            
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'var(--bg-primary)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '0.25rem',
+                  borderRadius: '0.375rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.25rem'
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.875rem'
                 }}
               >
-                <Italic size={16} /> <span style={{ fontSize: '0.85rem' }}>Italic</span>
+                <Italic size={16} /> Italic
               </button>
               
               <button
@@ -342,39 +347,41 @@ const ContentEditor: React.FC = () => {
                 onClick={() => insertTextFormatting('list')}
                 title="List (Markdown: - item)"
                 style={{
-                  padding: '0.5rem',
-                  
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'var(--bg-primary)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '0.25rem',
+                  borderRadius: '0.375rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.25rem'
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.875rem'
                 }}
               >
-                <List size={16} /> <span style={{ fontSize: '0.85rem' }}>List</span>
+                <List size={16} /> List
               </button>
 
               <div style={{ 
                 borderLeft: '1px solid var(--border-color)', 
-                margin: '0 0.25rem',
-                height: 'auto'
+                height: '24px',
+                margin: '0 0.25rem'
               }} />
 
               <label style={{
-                padding: '0.5rem',
-              
+                padding: '0.5rem 0.75rem',
+                backgroundColor: 'var(--bg-primary)',
                 border: '1px solid var(--border-color)',
-                borderRadius: '0.25rem',
+                borderRadius: '0.375rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.25rem'
+                justifyContent: 'center',
+                gap: '0.35rem',
+                fontSize: '0.875rem'
               }}>
                 <Upload size={16} />
-                <span style={{ fontSize: '0.85rem' }}>
-                  {uploadingMedia ? 'Uploading...' : 'Upload Media'}
-                </span>
+                {uploadingMedia ? 'Uploading...' : 'Upload'}
                 <input
                   type="file"
                   multiple
@@ -390,8 +397,8 @@ const ContentEditor: React.FC = () => {
             <div style={{ 
               display: 'flex', 
               gap: '0.5rem', 
-              marginBottom: '0.5rem',
-              alignItems: 'center'
+              marginBottom: '0.75rem',
+              alignItems: 'stretch'
             }}>
               <input
                 type="url"
@@ -400,10 +407,8 @@ const ContentEditor: React.FC = () => {
                 placeholder="Or paste media URL (https://...)"
                 style={{ 
                   flex: 1,
-                  padding: '0.5rem', 
-                  fontSize: '0.85rem',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '0.25rem'
+                  padding: '0.625rem 0.75rem', 
+                  fontSize: '0.875rem'
                 }}
               />
               <button
@@ -411,14 +416,15 @@ const ContentEditor: React.FC = () => {
                 onClick={addMediaUrl}
                 disabled={!mediaUrl.trim()}
                 style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: mediaUrl.trim() ? 'var(--accent-primary)' : '#e69419ff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '0.25rem',
+                  padding: '0.625rem 1rem',
+                  backgroundColor: mediaUrl.trim() ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                  color: mediaUrl.trim() ? 'white' : 'var(--text-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '0.375rem',
                   cursor: mediaUrl.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: '0.85rem',
-                  fontWeight: 600
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 Add URL
@@ -510,14 +516,24 @@ const ContentEditor: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+          <div style={{ 
+            display: 'flex', 
+            gap: '0.75rem', 
+            justifyContent: 'flex-end', 
+            marginTop: '1rem', 
+            paddingTop: '1.5rem', 
+            borderTop: '1px solid var(--border-color)',
+            flexWrap: 'wrap'
+          }}>
             <button 
               type="button" 
               onClick={() => navigate('/contents')}
+              className="btn-secondary"
               style={{
                 padding: '0.75rem 1.5rem',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '0.5rem',
                 fontSize: '1rem',
                 fontWeight: 600
@@ -533,9 +549,11 @@ const ContentEditor: React.FC = () => {
                 padding: '0.75rem 1.5rem',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '0.5rem',
                 fontSize: '1rem',
-                fontWeight: 600
+                fontWeight: 600,
+                opacity: loading ? 0.6 : 1
               }}
             >
               <Save size={18} /> {loading ? 'Saving...' : (isEditing ? 'Update' : 'Create')}

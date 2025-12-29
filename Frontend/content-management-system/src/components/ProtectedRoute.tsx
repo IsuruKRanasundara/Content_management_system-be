@@ -20,4 +20,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
   return <Outlet />;
 };
 
+
+//This component protects routes by checking authentication and user roles. If the user is not authenticated, they are redirected to the login page. If the user does not have the required role, they are redirected to the home page. Otherwise, the requested route is rendered.
 export default ProtectedRoute;

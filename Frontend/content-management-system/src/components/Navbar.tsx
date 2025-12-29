@@ -24,7 +24,7 @@ const Navbar: React.FC = () => {
 
   return (
     <nav style={{ 
-      padding: '1rem 2rem', 
+      padding: '1rem 1.5rem', 
       borderBottom: '1px solid var(--border-color)',
       display: 'flex',
       justifyContent: 'space-between',
@@ -33,11 +33,13 @@ const Navbar: React.FC = () => {
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      backdropFilter: 'blur(8px)'
+      backdropFilter: 'blur(8px)',
+      gap: '1rem',
+      flexWrap: 'wrap'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
         <Link to="/" style={{ 
-          fontSize: '1.75rem', 
+          fontSize: '1.5rem', 
           fontWeight: 'bold', 
           color: 'var(--accent-primary)',
           textDecoration: 'none',
@@ -46,54 +48,61 @@ const Navbar: React.FC = () => {
           gap: '0.5rem'
         }}>
           <span style={{ 
-            width: '40px', 
-            height: '40px', 
+            width: '36px', 
+            height: '36px', 
             backgroundColor: 'var(--accent-primary)', 
             borderRadius: '0.5rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'white',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            fontSize: '1.125rem'
           }}>C</span>
-          CMS
+          <span style={{ fontSize: 'clamp(1.25rem, 3vw, 1.5rem)' }}>CMS</span>
         </Link>
         {isAuthenticated && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Link to="/contents" style={navLinkStyle}>Contents</Link>
             {user?.role === 'Admin' && <Link to="/users" style={navLinkStyle}>Users</Link>}
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
         <button 
           onClick={toggleTheme} 
           style={{ 
             padding: '0.5rem', 
             display: 'flex', 
             alignItems: 'center',
+            justifyContent: 'center',
             borderRadius: '0.5rem',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            width: '40px',
+            height: '40px'
           }}
           onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
           onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          aria-label="Toggle theme"
         >
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
 
         {isAuthenticated ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <span style={{ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '0.5rem',
-              padding: '0.5rem 1rem',
+              padding: '0.5rem 0.875rem',
               backgroundColor: 'var(--bg-primary)',
               borderRadius: '0.5rem',
-              border: '1px solid var(--border-color)'
+              border: '1px solid var(--border-color)',
+              fontSize: '0.9375rem',
+              whiteSpace: 'nowrap'
             }}>
-              <UserIcon size={18} />
+              <UserIcon size={16} />
               <span style={{ fontWeight: 500 }}>{user?.username}</span>
             </span>
             <button 
@@ -102,26 +111,37 @@ const Navbar: React.FC = () => {
                 padding: '0.5rem 1rem', 
                 display: 'flex', 
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '0.5rem',
                 borderRadius: '0.5rem',
                 backgroundColor: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)'
+                border: '1px solid var(--border-color)',
+                fontSize: '0.9375rem',
+                fontWeight: 500,
+                whiteSpace: 'nowrap'
               }}
             >
-              <LogOut size={18} />
-              <span>Logout</span>
+              <LogOut size={16} />
+              Logout
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Link to="/login" style={{
               ...navLinkStyle,
-              border: '1px solid var(--border-color)'
+              border: '1px solid var(--border-color)',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              whiteSpace: 'nowrap'
             }}>Login</Link>
             <Link to="/register" className="btn-primary" style={{
               padding: '0.5rem 1rem',
-              borderRadius: '0.375rem',
-              textDecoration: 'none'
+              borderRadius: '0.5rem',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              whiteSpace: 'nowrap'
             }}>Register</Link>
           </div>
         )}

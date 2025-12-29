@@ -10,6 +10,7 @@ import ContentList from './pages/ContentList';
 import ContentEditor from './pages/ContentEditor';
 import UserList from './pages/UserList';
 import AboutUs from './pages/AboutUs';
+import ContentDetails from './pages/ContentDetails';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />
               <Route path="about" element={<AboutUs />} />
+              <Route path="contents/:id/view" element={<ContentDetails />} />
               
               {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>

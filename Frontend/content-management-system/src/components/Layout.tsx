@@ -14,5 +14,5 @@ const Layout: React.FC = () => {
     </div>
   );
 };
-
+//This is the main layout component that includes the Navbar at the top, Footer at the bottom, and an Outlet for rendering nested routes in between.
 export default Layout;

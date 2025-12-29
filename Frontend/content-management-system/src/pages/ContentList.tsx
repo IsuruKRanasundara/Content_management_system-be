@@ -84,20 +84,46 @@ const ContentList: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+    <div style={{ padding: '2rem 1rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '2rem',
+        flexWrap: 'wrap',
+        gap: '1rem'
+      }}>
         <div>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Content Library</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>Manage and organize your content</p>
+          <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', marginBottom: '0.5rem', margin: 0 }}>Content Library</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 'clamp(0.95rem, 2vw, 1.125rem)', margin: '0.5rem 0 0 0' }}>Manage and organize your content</p>
         </div>
         {isAuthenticated && (
-          <Link to="/contents/new" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75em 1.5em', borderRadius: '0.5rem', textDecoration: 'none', fontSize: '1rem', fontWeight: 600 }}>
+          <Link 
+            to="/contents/new" 
+            className="btn-primary" 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '0.5rem', 
+              padding: '0.75rem 1.5rem', 
+              borderRadius: '0.5rem', 
+              textDecoration: 'none', 
+              fontSize: '1rem', 
+              fontWeight: 600,
+              whiteSpace: 'nowrap'
+            }}
+          >
             <Plus size={20} /> Create New
           </Link>
         )}
       </div>
 
-      <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+      <div style={{ 
+        display: 'grid', 
+        gap: '1.5rem', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))'
+      }}>
         {contents.map((content) => (
           <div 
             key={content.contentId} 
@@ -145,22 +171,44 @@ const ContentList: React.FC = () => {
               {content.body}
             </p>
             {isAuthenticated && (
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.5rem', marginTop: 'auto' }}>
+                <Link
+                  to={`/contents/${content.contentId}/view`}
+                  style={{
+                    padding: '0.625rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    color: '#1d4ed8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  View
+                </Link>
                 <Link 
                   to={`/contents/${content.contentId}`} 
                   style={{ 
-                    padding: '0.5rem 1rem', 
+                    padding: '0.625rem 0.75rem', 
                     borderRadius: '0.375rem', 
                     backgroundColor: 'var(--accent-primary)', 
                     border: 'none',
                     color: 'white',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    flex: 1,
                     justifyContent: 'center',
+                    gap: '0.35rem',
                     textDecoration: 'none',
-                    fontWeight: 500
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap'
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -172,18 +220,22 @@ const ContentList: React.FC = () => {
                     handleDelete(content.contentId);
                   }} 
                   style={{ 
-                    padding: '0.5rem 1rem', 
+                    padding: '0.625rem 0.75rem', 
                     borderRadius: '0.375rem', 
                     backgroundColor: 'rgba(239, 68, 68, 0.1)', 
                     border: '1px solid rgba(239, 68, 68, 0.3)',
                     color: '#ef4444',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    fontWeight: 500
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer'
                   }}
+                  aria-label="Delete content"
                 >
-                  <Trash2 size={16} /> Delete
+                  <Trash2 size={16} />
                 </button>
               </div>
             )}
@@ -208,12 +260,14 @@ const ContentList: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.35)',
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.5rem',
-            zIndex: 999,
+            padding: '1rem',
+            zIndex: 1000,
+            overflowY: 'auto'
           }}
         >
           <div
@@ -222,27 +276,36 @@ const ContentList: React.FC = () => {
             style={{
               maxWidth: '800px',
               width: '100%',
-              maxHeight: '80vh',
+              maxHeight: '90vh',
               overflowY: 'auto',
-              padding: '1.5rem',
+              padding: '2rem',
               position: 'relative',
+              margin: '1rem'
             }}
           >
             <button
               onClick={() => setPreviewContent(null)}
               style={{
                 position: 'absolute',
-                top: '0.75rem',
-                right: '0.75rem',
-                background: 'transparent',
-                border: 'none',
-                fontSize: '1.25rem',
+                top: '1rem',
+                right: '1rem',
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                fontSize: '1.5rem',
                 cursor: 'pointer',
-            }}
-            aria-label="Close preview"
-          >
-              x
-          </button>
+                width: '36px',
+                height: '36px',
+                borderRadius: '0.375rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                lineHeight: 1
+              }}
+              aria-label="Close preview"
+            >
+              ×
+            </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
               <span style={{ 
                 padding: '0.25rem 0.75rem', 

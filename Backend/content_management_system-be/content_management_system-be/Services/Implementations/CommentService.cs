@@ -1,92 +1,190 @@
-using System.Linq;
-using AutoMapper;
 using CMS.DTOs;
 using CMS.Models;
 using CMS.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace CMS.Services.Implementations
 {
     public class CommentService : ICommentService
     {
-        private readonly CmsDbContext _context;
-        private readonly IMapper _mapper;
+        private readonly ICommentRepository _repository;
+        private readonly string[] _bannedWords = new[] { "spam", "fake", "scam", "profanity" };
 
-        public CommentService(CmsDbContext context, IMapper mapper)
+        public CommentService(ICommentRepository repository)
         {
-            _context = context;
-            _mapper = mapper;
+            _repository = repository;
         }
 
-        public async Task<IEnumerable<CommentReadDto>> GetAllAsync()
+        public async Task<PagedResult<CommentReadDto>> GetByContentAsync(int contentId, int page, int pageSize)
         {
-            var comments = await _context.Comments.AsNoTracking().ToListAsync();
-            return _mapper.Map<IEnumerable<CommentReadDto>>(comments);
+            if (page <= 0) page = 1;
+            if (pageSize <= 0 || pageSize > 100) pageSize = 10;
+
+            var (roots, total) = await _repository.GetRootCommentsAsync(contentId, page, pageSize);
+            var replies = await _repository.GetRepliesAsync(roots.Select(r => r.Id));
+
+            var replyLookup = replies
+                .GroupBy(r => r.ParentId)
+                .ToDictionary(g => g.Key!, g => g.Select(MapToReadDto).ToList());
+
+            var mappedRoots = roots
+                .Select(root =>
+                {
+                    var dto = MapToReadDto(root);
+                    if (replyLookup.TryGetValue(root.Id, out var children))
+                    {
+                        dto.Replies = children;
+                    }
+                    return dto;
+                })
+                .ToList();
+
+            return new PagedResult<CommentReadDto>
+            {
+                Items = mappedRoots,
+                Page = page,
+                PageSize = pageSize,
+                Total = total
+            };
         }
 
-        public async Task<IEnumerable<CommentReadDto>> GetByContentAsync(int contentId)
+        public async Task<CommentReadDto?> GetByIdAsync(string id)
         {
-            var comments = await _context.Comments.AsNoTracking()
-                .Where(c => c.ContentId == contentId)
-                .ToListAsync();
-            return _mapper.Map<IEnumerable<CommentReadDto>>(comments);
+            var comment = await _repository.GetByIdAsync(id);
+            return comment == null ? null : MapToReadDto(comment);
         }
 
-        public async Task<CommentReadDto?> GetByIdAsync(int id)
-        {
-            var comment = await _context.Comments.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.CommentId == id);
-            return comment == null ? null : _mapper.Map<CommentReadDto>(comment);
-        }
-
-        public async Task<CommentReadDto> CreateAsync(CommentCreateDto dto)
+        public async Task<CommentReadDto> CreateAsync(CommentCreateDto dto, UserContext user)
         {
             ArgumentNullException.ThrowIfNull(dto);
+            ArgumentNullException.ThrowIfNull(user);
 
-            var entity = _mapper.Map<Comment>(dto);
-            _context.Comments.Add(entity);
-            await _context.SaveChangesAsync();
+            ValidateContent(dto.Text);
+            await EnsureValidParent(dto.ParentId, dto.ContentId);
 
-            return _mapper.Map<CommentReadDto>(entity);
+            var comment = new CommentDocument
+            {
+                ContentId = dto.ContentId,
+                ParentId = dto.ParentId,
+                Text = dto.Text.Trim(),
+                UserId = user.UserId,
+                Username = user.Username,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _repository.InsertAsync(comment);
+            return MapToReadDto(comment);
         }
 
-        public async Task<CommentReadDto?> UpdateAsync(int id, CommentUpdateDto dto)
+        public async Task<CommentReadDto?> UpdateAsync(string id, CommentUpdateDto dto, UserContext user)
         {
             ArgumentNullException.ThrowIfNull(dto);
+            ArgumentNullException.ThrowIfNull(user);
 
-            var entity = await _context.Comments.FindAsync(id);
-            if (entity == null)
+            var comment = await _repository.GetByIdAsync(id);
+            if (comment == null)
             {
                 return null;
             }
 
+            if (!IsOwnerOrAdmin(comment, user))
+            {
+                throw new UnauthorizedAccessException("You can only edit your own comments.");
+            }
+
             if (!string.IsNullOrWhiteSpace(dto.Text))
             {
-                entity.Text = dto.Text;
+                ValidateContent(dto.Text);
+                comment.Text = dto.Text.Trim();
             }
 
-            if (dto.IsApproved.HasValue)
+            if (dto.IsModerated.HasValue)
             {
-                entity.IsApproved = dto.IsApproved.Value;
+                if (!user.IsAdmin)
+                {
+                    throw new UnauthorizedAccessException("Only admins can moderate comments.");
+                }
+                comment.IsModerated = dto.IsModerated.Value;
             }
 
-            entity.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            comment.UpdatedAt = DateTime.UtcNow;
+            await _repository.UpdateAsync(comment);
 
-            return _mapper.Map<CommentReadDto>(entity);
+            return MapToReadDto(comment);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> SoftDeleteAsync(string id, UserContext user)
         {
-            var entity = await _context.Comments.FindAsync(id);
-            if (entity == null)
+            ArgumentNullException.ThrowIfNull(user);
+
+            var comment = await _repository.GetByIdAsync(id);
+            if (comment == null)
             {
                 return false;
             }
 
-            _context.Comments.Remove(entity);
-            await _context.SaveChangesAsync();
+            if (!IsOwnerOrAdmin(comment, user))
+            {
+                throw new UnauthorizedAccessException("You can only delete your own comments.");
+            }
+
+            comment.IsDeleted = true;
+            comment.Text = "[deleted]";
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            await _repository.UpdateAsync(comment);
             return true;
+        }
+
+        private async Task EnsureValidParent(string? parentId, int contentId)
+        {
+            if (string.IsNullOrWhiteSpace(parentId))
+            {
+                return;
+            }
+
+            var parent = await _repository.GetByIdAsync(parentId);
+            if (parent == null || parent.ParentId != null || parent.ContentId != contentId)
+            {
+                throw new InvalidOperationException("Invalid parent comment specified.");
+            }
+        }
+
+        private void ValidateContent(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                throw new ArgumentException("Comment text cannot be empty.");
+            }
+
+            var lowered = text.ToLowerInvariant();
+            if (_bannedWords.Any(b => lowered.Contains(b)))
+            {
+                throw new InvalidOperationException("Comment blocked by spam/profanity filter.");
+            }
+        }
+
+        private static bool IsOwnerOrAdmin(CommentDocument comment, UserContext user)
+        {
+            return user.IsAdmin || comment.UserId == user.UserId;
+        }
+
+        private static CommentReadDto MapToReadDto(CommentDocument comment)
+        {
+            return new CommentReadDto
+            {
+                Id = comment.Id,
+                ContentId = comment.ContentId,
+                ParentId = comment.ParentId,
+                UserId = comment.UserId,
+                Username = comment.Username,
+                Text = comment.IsDeleted ? "[deleted]" : comment.Text,
+                IsDeleted = comment.IsDeleted,
+                IsModerated = comment.IsModerated,
+                CreatedAt = comment.CreatedAt,
+                UpdatedAt = comment.UpdatedAt,
+                Replies = Enumerable.Empty<CommentReadDto>()
+            };
         }
     }
 }

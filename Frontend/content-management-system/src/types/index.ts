@@ -31,3 +31,24 @@ export interface UpdateContentRequest {
   status?: 'Draft' | 'Published';
   categoryId?: number;
 }
+
+export interface Comment {
+  id: string;
+  contentId: number;
+  parentId?: string | null;
+  userId: number;
+  username: string;
+  text: string;
+  isDeleted: boolean;
+  isModerated: boolean;
+  createdAt: string;
+  updatedAt: string;
+  replies?: Comment[];
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+}

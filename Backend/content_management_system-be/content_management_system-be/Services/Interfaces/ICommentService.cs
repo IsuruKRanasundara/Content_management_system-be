@@ -1,14 +1,14 @@
 using CMS.DTOs;
+using CMS.Models;
 
 namespace CMS.Services.Interfaces
 {
     public interface ICommentService
     {
-        Task<IEnumerable<CommentReadDto>> GetAllAsync();
-        Task<IEnumerable<CommentReadDto>> GetByContentAsync(int contentId);
-        Task<CommentReadDto?> GetByIdAsync(int id);
-        Task<CommentReadDto> CreateAsync(CommentCreateDto dto);
-        Task<CommentReadDto?> UpdateAsync(int id, CommentUpdateDto dto);
-        Task<bool> DeleteAsync(int id);
+        Task<PagedResult<CommentReadDto>> GetByContentAsync(int contentId, int page, int pageSize);
+        Task<CommentReadDto?> GetByIdAsync(string id);
+        Task<CommentReadDto> CreateAsync(CommentCreateDto dto, UserContext user);
+        Task<CommentReadDto?> UpdateAsync(string id, CommentUpdateDto dto, UserContext user);
+        Task<bool> SoftDeleteAsync(string id, UserContext user);
     }
 }

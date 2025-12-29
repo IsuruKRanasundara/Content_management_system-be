@@ -5,6 +5,9 @@ using CMS.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Driver;
+using System.Net.Security;
+using System.Security.Authentication;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +18,39 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddDbContext<CmsDbContext>(options =>
     options.UseInMemoryDatabase("CmsDb"));
 
+builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
+builder.Services.AddSingleton<IMongoClient>(sp =>
+{
+    var settings = sp.GetRequiredService<IConfiguration>().GetSection("MongoDbSettings");
+    var connectionString = settings["ConnectionString"];
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("MongoDbSettings:ConnectionString is missing");
+    }
+    
+    // Configure MongoDB client settings with explicit TLS/SSL configuration
+    var mongoClientSettings = MongoClientSettings.FromConnectionString(connectionString);
+    
+    // Configure SSL/TLS settings for .NET 10 compatibility
+    mongoClientSettings.SslSettings = new SslSettings
+    {
+        EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+        CheckCertificateRevocation = false,
+        ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+        {
+            // For MongoDB Atlas, accept the certificate
+            return sslPolicyErrors == SslPolicyErrors.None || 
+                   sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors;
+        }
+    };
+    
+    // Set connection timeouts
+    mongoClientSettings.ServerSelectionTimeout = TimeSpan.FromSeconds(30);
+    mongoClientSettings.ConnectTimeout = TimeSpan.FromSeconds(30);
+    
+    return new MongoClient(mongoClientSettings);
+});
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IContentService, ContentService>();
@@ -22,6 +58,7 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IContentTagService, ContentTagService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
+builder.Services.AddSingleton<ICommentRepository, CommentRepository>();
 
 var allowedOrigins = new[]
 {

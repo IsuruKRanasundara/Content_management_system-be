@@ -32,23 +32,29 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 200px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <div style={{ maxWidth: '450px', width: '100%' }} className="card">
+    <div style={{ 
+      minHeight: 'calc(100vh - 200px)', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      padding: '1rem'
+    }}>
+      <div style={{ maxWidth: '450px', width: '100%', padding: '2rem 1.5rem' }} className="card">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ 
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '60px',
-            height: '60px',
+            width: 'clamp(50px, 12vw, 60px)',
+            height: 'clamp(50px, 12vw, 60px)',
             backgroundColor: 'var(--accent-primary)',
             borderRadius: '0.75rem',
             marginBottom: '1rem'
           }}>
             <LogIn size={32} color="white" />
           </div>
-          <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Welcome Back</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Sign in to your account to continue</p>
+          <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', marginBottom: '0.5rem', margin: '0 0 0.5rem 0' }}>Welcome Back</h2>
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Sign in to your account to continue</p>
         </div>
         
         {error && (
@@ -58,49 +64,62 @@ const Login: React.FC = () => {
             padding: '1rem',
             borderRadius: '0.5rem',
             marginBottom: '1.5rem',
-            border: '1px solid rgba(239, 68, 68, 0.3)'
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            fontSize: '0.9375rem',
+            lineHeight: 1.5
           }}>
             {error}
           </div>
         )}
         
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Email Address</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9375rem' }}>Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="you@example.com"
-              style={{ width: '100%', padding: '0.75rem' }}
+              style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
             />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Password</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9375rem' }}>Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Enter your password"
-              style={{ width: '100%', padding: '0.75rem' }}
+              style={{ width: '100%', padding: '0.75rem', fontSize: '1rem' }}
             />
           </div>
           <button 
             type="submit" 
             className="btn-primary" 
             disabled={loading}
-            style={{ padding: '0.875rem', fontSize: '1rem', fontWeight: 600 }}
+            style={{ 
+              padding: '0.875rem', 
+              fontSize: '1rem', 
+              fontWeight: 600,
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
         
-        <div style={{ marginTop: '1.5rem', textAlign: 'center', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
-          <p style={{ color: 'var(--text-secondary)' }}>
+        <div style={{ 
+          marginTop: '1.5rem', 
+          textAlign: 'center', 
+          paddingTop: '1.5rem', 
+          borderTop: '1px solid var(--border-color)' 
+        }}>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9375rem' }}>
             Don't have an account?{' '}
-            <Link to="/register" style={{ fontWeight: 600 }}>Create one</Link>
+            <Link to="/register" style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>Create one</Link>
           </p>
         </div>
       </div>

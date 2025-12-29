@@ -11,9 +11,6 @@ namespace CMS.Mappings
             CreateMap<Content, ContentReadDto>();
             CreateMap<ContentCreateDto, Content>();
 
-            CreateMap<Comment, CommentReadDto>();
-            CreateMap<CommentCreateDto, Comment>();
-
             CreateMap<Tag, TagReadDto>();
             CreateMap<TagCreateDto, Tag>();
 
