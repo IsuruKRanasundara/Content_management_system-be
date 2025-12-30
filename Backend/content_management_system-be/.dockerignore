@@ -1,0 +1,74 @@
+# Docker ignore file - excludes files from Docker build context
+# This speeds up builds and reduces image size
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sln.iml
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Docker
+*.dockerignore
+docker-compose*.yml
+Dockerfile*
+.env
+.env.*
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Testing
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+# Uploads and runtime data
+uploads/
+logs/
+*.log
+*.db
+*.sqlite
+
+# OS files
+.DS_Store
+Thumbs.db

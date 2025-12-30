@@ -1,0 +1,166 @@
+version: '3.8'
+
+services:
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: cms-rabbitmq
+    hostname: cms-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP protocol port
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-cmsadmin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-CmsSecurePassword123!}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/cms}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+    networks:
+      - cms-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  # MongoDB Database (if needed)
+  mongodb:
+    image: mongo:7-jammy
+    container_name: cms-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-MongoSecurePassword123!}
+      MONGO_INITDB_DATABASE: ContentManagementSystem
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - cms-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  # CMS API Service
+  cms-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cms-api
+    ports:
+      - "5000:8080"   # HTTP
+      - "5001:8081"   # HTTPS (if configured)
+    environment:
+      # ASP.NET Core
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      
+      # RabbitMQ Configuration
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__UserName: ${RABBITMQ_USER:-cmsadmin}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-CmsSecurePassword123!}
+      RabbitMQ__VirtualHost: ${RABBITMQ_VHOST:-/cms}
+      
+      # MongoDB Configuration
+      MongoDbSettings__ConnectionString: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-MongoSecurePassword123!}@mongodb:27017
+      MongoDbSettings__DatabaseName: ContentManagementSystem
+      
+      # JWT Configuration (use secrets in production!)
+      Jwt__Key: ${JWT_SECRET_KEY:-YourSuperSecretKeyThatIsAtLeast32CharactersLongForProduction!}
+      Jwt__Issuer: ${JWT_ISSUER:-CMS-API}
+      Jwt__Audience: ${JWT_AUDIENCE:-CMS-Clients}
+      
+      # Logging
+      Logging__LogLevel__Default: Information
+      Logging__LogLevel__Microsoft.AspNetCore: Warning
+      Logging__LogLevel__CMS.Workers: Information
+      Logging__LogLevel__CMS.Messaging: Information
+    volumes:
+      - ./uploads:/app/uploads
+      - api_logs:/app/logs
+    networks:
+      - cms-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Background Worker Service (Optional: if you want to scale workers independently)
+  cms-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: cms-worker
+    deploy:
+      replicas: 2  # Run 2 worker instances
+    environment:
+      # ASP.NET Core
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      DOTNET_RUNNING_IN_CONTAINER: true
+      
+      # RabbitMQ Configuration
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__UserName: ${RABBITMQ_USER:-cmsadmin}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-CmsSecurePassword123!}
+      RabbitMQ__VirtualHost: ${RABBITMQ_VHOST:-/cms}
+      
+      # MongoDB Configuration
+      MongoDbSettings__ConnectionString: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-MongoSecurePassword123!}@mongodb:27017
+      MongoDbSettings__DatabaseName: ContentManagementSystem
+      
+      # Disable HTTP endpoints for worker
+      ASPNETCORE_URLS: ""
+      
+      # Logging
+      Logging__LogLevel__Default: Information
+      Logging__LogLevel__CMS.Workers: Debug
+      Logging__LogLevel__CMS.Messaging: Debug
+    volumes:
+      - worker_logs:/app/logs
+    networks:
+      - cms-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Networks
+networks:
+  cms-network:
+    driver: bridge
+    name: cms-network
+
+# Volumes
+volumes:
+  rabbitmq_data:
+    name: cms-rabbitmq-data
+  rabbitmq_logs:
+    name: cms-rabbitmq-logs
+  mongodb_data:
+    name: cms-mongodb-data
+  mongodb_config:
+    name: cms-mongodb-config
+  api_logs:
+    name: cms-api-logs
+  worker_logs:
+    name: cms-worker-logs

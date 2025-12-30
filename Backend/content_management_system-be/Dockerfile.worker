@@ -1,0 +1,46 @@
+# Multi-stage Dockerfile for Background Workers
+# This uses the same build as the API but runs only the worker services
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy csproj and restore dependencies (cached layer)
+COPY ["content_management_system-be/content_management_system-be.csproj", "content_management_system-be/"]
+RUN dotnet restore "content_management_system-be/content_management_system-be.csproj"
+
+# Copy everything else and build
+COPY . .
+WORKDIR "/src/content_management_system-be"
+RUN dotnet build "content_management_system-be.csproj" -c Release -o /app/build
+
+# Stage 2: Publish the application
+FROM build AS publish
+RUN dotnet publish "content_management_system-be.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Stage 3: Final runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+
+# Create non-root user for security
+RUN groupadd -r cmsworker && useradd -r -g cmsworker cmsworker
+
+# Copy published app
+COPY --from=publish /app/publish .
+
+# Set ownership
+RUN chown -R cmsworker:cmsworker /app
+
+# Switch to non-root user
+USER cmsworker
+
+# Health check (optional - could check RabbitMQ connection)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD pgrep -f dotnet || exit 1
+
+# Set environment variables
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV ASPNETCORE_URLS=""
+
+# Note: The same application runs, but workers will start automatically
+# as they are registered as HostedServices in Program.cs
+ENTRYPOINT ["dotnet", "content_management_system-be.dll"]

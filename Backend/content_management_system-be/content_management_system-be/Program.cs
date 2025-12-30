@@ -2,6 +2,11 @@ using CMS.Mappings;
 using CMS.Models;
 using CMS.Services.Implementations;
 using CMS.Services.Interfaces;
+using CMS.Messaging.Configuration;
+using CMS.Messaging.Producers;
+using CMS.Messaging.Consumers;
+using CMS.Workers;
+using CMS.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,6 +18,38 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 // Configure AutoMapper with explicit profile assembly reference
 builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+// Configure RabbitMQ
+builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQ"));
+builder.Services.AddSingleton<RabbitMQConnectionFactory>();
+builder.Services.AddSingleton<IMessageProducer, RabbitMQProducer>();
+
+// Register Consumers
+builder.Services.AddScoped<SubscriberNotificationConsumer>();
+builder.Services.AddScoped<ContentIndexingConsumer>();
+builder.Services.AddScoped<AISummaryConsumer>();
+builder.Services.AddScoped<CacheUpdateConsumer>();
+builder.Services.AddScoped<EmailNotificationConsumer>();
+builder.Services.AddScoped<PushNotificationConsumer>();
+builder.Services.AddScoped<AdminAlertConsumer>();
+builder.Services.AddScoped<AuditLogConsumer>();
+builder.Services.AddScoped<CommentModerationConsumer>();
+builder.Services.AddScoped<ContentClassificationConsumer>();
+builder.Services.AddScoped<AutoTaggingConsumer>();
+
+// Register Background Workers
+builder.Services.AddHostedService<ContentPublishingWorker>();
+builder.Services.AddHostedService<ContentIndexingWorker>();
+builder.Services.AddHostedService<AISummaryWorker>();
+builder.Services.AddHostedService<CacheUpdateWorker>();
+builder.Services.AddHostedService<EmailNotificationWorker>();
+builder.Services.AddHostedService<PushNotificationWorker>();
+builder.Services.AddHostedService<AdminAlertWorker>();
+builder.Services.AddHostedService<AuditLogWorker>();
+builder.Services.AddHostedService<CommentModerationWorker>();
+builder.Services.AddHostedService<ContentClassificationWorker>();
+builder.Services.AddHostedService<AutoTaggingWorker>();
+
 // Add services to the container.
 
 builder.Services.AddDbContext<CmsDbContext>(options =>
@@ -128,6 +165,10 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseCors("Frontend");
+
+// Add audit logging middleware (optional)
+// app.UseMiddleware<AuditLoggingMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

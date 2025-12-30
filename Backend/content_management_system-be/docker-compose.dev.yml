@@ -1,0 +1,77 @@
+# Development Docker Compose Configuration
+# Use this for local development with hot reload and debugging
+
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: cms-rabbitmq-dev
+    hostname: cms-rabbitmq-dev
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    networks:
+      - cms-network-dev
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  mongodb:
+    image: mongo:7-jammy
+    container_name: cms-mongodb-dev
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: ContentManagementSystem
+    volumes:
+      - mongodb_data_dev:/data/db
+    networks:
+      - cms-network-dev
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Optional: Run API in container for development
+  # Uncomment if you want to test containerized version
+  # cms-api-dev:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "5000:8080"
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Development
+  #     RabbitMQ__HostName: rabbitmq
+  #     RabbitMQ__Port: 5672
+  #     RabbitMQ__UserName: guest
+  #     RabbitMQ__Password: guest
+  #     MongoDbSettings__ConnectionString: mongodb://admin:admin123@mongodb:27017
+  #   volumes:
+  #     - ./uploads:/app/uploads
+  #   networks:
+  #     - cms-network-dev
+  #   depends_on:
+  #     - rabbitmq
+  #     - mongodb
+
+networks:
+  cms-network-dev:
+    driver: bridge
+    name: cms-network-dev
+
+volumes:
+  mongodb_data_dev:
+    name: cms-mongodb-data-dev

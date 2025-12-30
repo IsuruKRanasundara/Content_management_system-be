@@ -59,7 +59,7 @@ namespace CMS.Services.Implementations
             return replies;
         }
 
-        public Task<CommentDocument?> GetByIdAsync(string id)
+        public Task<CommentDocument> GetByIdAsync(string id)
         {
             return Collection.Find(c => c.Id == id).FirstOrDefaultAsync();
         }

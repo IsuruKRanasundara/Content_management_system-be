@@ -1,0 +1,116 @@
+# .gitignore for CMS Project
+
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+.vs/
+.vscode/
+.idea/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+
+# Docker
+**/.env
+.env.*
+!.env.example
+
+# Uploads and logs
+uploads/*
+!uploads/.gitkeep
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# MonoDevelop
+*.userprefs
+*.pidb
+
+# Backup files
+*.bak
+*.tmp
+*~
+
+# Publish profiles
+PublishProfiles/
+*.pubxml
+*.pubxml.user
+
+# Azure
+*.azurePubxml
+
+# Web publish settings
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj
+
+# Others
+ClientBin/
+~$*
+*.dbmdl
+*.pfx
+*.publishsettings
+node_modules/
+orleans.codegen.cs
+
+# RabbitMQ data (if running locally)
+rabbitmq-data/
+
+# MongoDB data (if running locally)
+mongodb-data/
