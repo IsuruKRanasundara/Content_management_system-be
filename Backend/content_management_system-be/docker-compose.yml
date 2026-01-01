@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # RabbitMQ Message Broker
   rabbitmq:
@@ -107,7 +105,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    container_name: cms-worker
     deploy:
       replicas: 2  # Run 2 worker instances
     environment:

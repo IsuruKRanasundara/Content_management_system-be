@@ -1,11 +1,20 @@
 import axios, { type InternalAxiosRequestConfig, type AxiosError } from 'axios';
 
-// Use relative URL to leverage Vite's proxy configuration
-// In production, set this via environment variable
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Environment Configuration
+const config = {
+  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '30000'),
+  debugMode: import.meta.env.VITE_DEBUG_MODE === 'true',
+};
+
+// Log configuration in development
+if (config.debugMode) {
+  console.log('🔧 API Configuration:', config);
+}
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: config.apiUrl,
+  timeout: config.timeout,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -20,9 +29,11 @@ api.interceptors.request.use(
       // Ensure the token is properly formatted
       const cleanToken = token.trim();
       config.headers['Authorization'] = `Bearer ${cleanToken}`;
-      console.log('🔑 Token attached to request:', config.method?.toUpperCase(), config.url);
-      console.log('📋 Authorization header:', config.headers['Authorization'].substring(0, 30) + '...');
-    } else {
+      
+      if (import.meta.env.VITE_DEBUG_MODE === 'true') {
+        console.log('🔑 Token attached to request:', config.method?.toUpperCase(), config.url);
+      }
+    } else if (import.meta.env.VITE_DEBUG_MODE === 'true') {
       console.warn('⚠️ No token found in localStorage for request:', config.method?.toUpperCase(), config.url);
     }
     return config;
@@ -37,12 +48,14 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     // Log all errors for debugging
-    console.error('❌ API Error:', {
-      status: error.response?.status,
-      url: error.config?.url,
-      method: error.config?.method?.toUpperCase(),
-      data: error.response?.data
-    });
+    if (import.meta.env.VITE_DEBUG_MODE === 'true') {
+      console.error('❌ API Error:', {
+        status: error.response?.status,
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
+        data: error.response?.data
+      });
+    }
 
     // Only auto-redirect on 401 if the error message indicates token expiration or invalid token
     // This allows other 401 errors (like permission issues) to be handled by the component
@@ -72,3 +85,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+export { config as apiConfig };
