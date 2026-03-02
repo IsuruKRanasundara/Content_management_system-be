@@ -1,30 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useAsyncJobs } from '../../context/AsyncJobContext';
-import { useToast } from '../../context/ToastContext';
+import React, { useState } from 'react';
+import { useAsyncJobs } from '../context/AsyncJobContext';
+import { useToast } from '../context/ToastContext';
 import { 
   JobList, 
   JobStatistics, 
   JobStatusItem 
-} from './JobStatusComponents';
+} from '../components/async/JobStatusComponents';
 import { 
   LoadingButton,
   StatusMessage 
-} from './FeedbackComponents';
+} from '../components/async/FeedbackComponents';
 import { 
-  AsyncJob, 
-  JobStatus, 
-  JobType 
-} from '../../services/asyncJobService';
+  JobStatus
+} from '../services/asyncJobService';
 import {
   Activity,
   BarChart3,
   Clock,
-  Filter,
   RefreshCw,
-  Trash2,
-  Download,
-  Settings,
-  Info,
+  Trash2
 } from 'lucide-react';
 
 /**

@@ -3,7 +3,7 @@
  * Provides real-time updates for job status changes via WebSocket connection
  */
 
-import { AsyncJob, JobStatus } from './asyncJobService';
+import type { AsyncJob } from './asyncJobService';
 
 type MessageHandler = (job: AsyncJob) => void;
 type ConnectionHandler = () => void;

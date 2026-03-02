@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
-import { publishContent, unpublishContent } from '../../services/contentService';
+import { publishContent } from '../../services/contentService';
 import { LoadingButton, ProgressBar, StatusMessage } from '../async/FeedbackComponents';
 import { JobType } from '../../services/asyncJobService';
 
@@ -146,8 +146,8 @@ export const ExportDataButton: React.FC = () => {
     successMessage: 'Export completed! Download will start automatically.',
     onSuccess: (result) => {
       // Auto-download the exported file
-      if (result?.downloadUrl) {
-        window.location.href = result.downloadUrl;
+      if (result && typeof result === 'object' && 'downloadUrl' in result) {
+        window.location.href = result.downloadUrl as string;
       }
     },
   });

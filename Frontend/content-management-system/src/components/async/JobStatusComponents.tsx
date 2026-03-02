@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAsyncJobs } from '../../context/AsyncJobContext';
 import { useToast } from '../../context/ToastContext';
-import { JobStatus, JobType, AsyncJob } from '../../services/asyncJobService';
+import { JobStatus, JobType } from '../../services/asyncJobService';
+import type { AsyncJob } from '../../services/asyncJobService';
 import { 
   Clock, 
   CheckCircle, 
@@ -11,7 +12,6 @@ import {
   X,
   RefreshCw,
   Trash2,
-  Filter,
   Search
 } from 'lucide-react';
 
@@ -23,9 +23,6 @@ export const JobStatusIndicator: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!hasActiveJobs()) return null;
-
-  const processingCount = activeJobs.filter(j => j.status === JobStatus.PROCESSING).length;
-  const queuedCount = activeJobs.filter(j => j.status === JobStatus.QUEUED).length;
 
   return (
     <div className="fixed bottom-4 right-4 z-40">
@@ -149,7 +146,7 @@ export const JobList: React.FC<JobListProps> = ({ filter, onJobClick }) => {
     refreshJobs, 
     isLoading 
   } = useAsyncJobs();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showInfo } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
@@ -342,7 +339,3 @@ export const JobStatistics: React.FC = () => {
     </div>
   );
 };
-
-function showInfo(arg0: string, arg1: string) {
-  // Implementation needed - use toast
-}

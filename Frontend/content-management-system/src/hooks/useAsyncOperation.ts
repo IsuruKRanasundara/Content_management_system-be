@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useAsyncJobs } from '../context/AsyncJobContext';
 import { useToast } from '../context/ToastContext';
-import { AsyncJob, JobStatus, JobType } from '../services/asyncJobService';
+import { JobStatus, JobType } from '../services/asyncJobService';
+import type { AsyncJob } from '../services/asyncJobService';
 
 /**
  * Custom Hooks for Async Operations
@@ -19,7 +20,7 @@ interface UseAsyncOperationOptions<T> {
   jobType?: JobType;
 }
 
-export const useAsyncOperation = <T = any,>(
+export const useAsyncOperation = <T = unknown,>(
   options?: UseAsyncOperationOptions<T>
 ) => {
   const { addJob, startPolling } = useAsyncJobs();
@@ -184,7 +185,7 @@ export const useJobPolling = (jobId: string | null) => {
 /**
  * Hook for batch operations
  */
-export const useBatchOperation = <T = any,>() => {
+export const useBatchOperation = <T = unknown,>() => {
   const [operations, setOperations] = useState<Map<string, AsyncJob>>(new Map());
   const { addJob, startPolling } = useAsyncJobs();
   const { showSuccess, showError } = useToast();

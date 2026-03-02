@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { asyncJobService, AsyncJob, JobStatus, JobType } from '../services/asyncJobService';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
+import { asyncJobService, JobStatus, JobType } from '../services/asyncJobService';
+import type { AsyncJob } from '../services/asyncJobService';
 
 /**
  * Centralized State Management for Async Jobs
@@ -64,6 +66,33 @@ export const AsyncJobProvider: React.FC<AsyncJobProviderProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [pollingJobs, setPollingJobs] = useState<Set<string>>(new Set());
 
+  // Refresh all jobs from backend
+  const refreshJobs = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const userJobs = await asyncJobService.getUserJobs();
+      
+      // Update existing jobs and add new ones
+      setJobs(prev => {
+        const jobMap = new Map(prev.map(j => [j.id, j]));
+        
+        userJobs.forEach(job => {
+          jobMap.set(job.id, job);
+        });
+        
+        return Array.from(jobMap.values());
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh jobs';
+      setError(errorMessage);
+      console.error('Failed to refresh jobs:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Load jobs from localStorage on mount
   useEffect(() => {
     if (persistState) {
@@ -94,7 +123,7 @@ export const AsyncJobProvider: React.FC<AsyncJobProviderProps> = ({
       
       return () => clearInterval(interval);
     }
-  }, [autoRefreshInterval]);
+  }, [autoRefreshInterval, refreshJobs]);
 
   // Computed values
   const activeJobs = jobs.filter(job => 
@@ -140,49 +169,6 @@ export const AsyncJobProvider: React.FC<AsyncJobProviderProps> = ({
     }
   }, [updateJob]);
 
-  // Retry a failed job (placeholder - requires backend support)
-  const retryJob = useCallback((jobId: string) => {
-    const job = jobs.find(j => j.id === jobId);
-    if (job) {
-      updateJob(jobId, { status: JobStatus.PENDING, error: undefined });
-      startPolling(jobId);
-    }
-  }, [jobs, updateJob]);
-
-  // Clear completed jobs
-  const clearCompletedJobs = useCallback(() => {
-    setJobs(prev => prev.filter(job => job.status !== JobStatus.COMPLETED));
-  }, []);
-
-  // Clear all jobs
-  const clearAllJobs = useCallback(() => {
-    asyncJobService.stopAllPolling();
-    setJobs([]);
-    if (persistState) {
-      localStorage.removeItem('asyncJobs');
-    }
-  }, [persistState]);
-
-  // Get a specific job
-  const getJob = useCallback((jobId: string) => {
-    return jobs.find(job => job.id === jobId);
-  }, [jobs]);
-
-  // Get jobs by type
-  const getJobsByType = useCallback((type: JobType) => {
-    return jobs.filter(job => job.type === type);
-  }, [jobs]);
-
-  // Get jobs by status
-  const getJobsByStatus = useCallback((status: JobStatus) => {
-    return jobs.filter(job => job.status === status);
-  }, [jobs]);
-
-  // Check if there are active jobs
-  const hasActiveJobs = useCallback(() => {
-    return activeJobs.length > 0;
-  }, [activeJobs]);
-
   // Start polling for a job
   const startPolling = useCallback((jobId: string, options?: PollingOptions) => {
     if (pollingJobs.has(jobId)) {
@@ -222,6 +208,49 @@ export const AsyncJobProvider: React.FC<AsyncJobProviderProps> = ({
     });
   }, [pollingJobs, updateJob]);
 
+  // Retry a failed job (placeholder - requires backend support)
+  const retryJob = useCallback((jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      updateJob(jobId, { status: JobStatus.PENDING, error: undefined });
+      startPolling(jobId);
+    }
+  }, [jobs, updateJob, startPolling]);
+
+  // Clear completed jobs
+  const clearCompletedJobs = useCallback(() => {
+    setJobs(prev => prev.filter(job => job.status !== JobStatus.COMPLETED));
+  }, []);
+
+  // Clear all jobs
+  const clearAllJobs = useCallback(() => {
+    asyncJobService.stopAllPolling();
+    setJobs([]);
+    if (persistState) {
+      localStorage.removeItem('asyncJobs');
+    }
+  }, [persistState]);
+
+  // Get a specific job
+  const getJob = useCallback((jobId: string) => {
+    return jobs.find(job => job.id === jobId);
+  }, [jobs]);
+
+  // Get jobs by type
+  const getJobsByType = useCallback((type: JobType) => {
+    return jobs.filter(job => job.type === type);
+  }, [jobs]);
+
+  // Get jobs by status
+  const getJobsByStatus = useCallback((status: JobStatus) => {
+    return jobs.filter(job => job.status === status);
+  }, [jobs]);
+
+  // Check if there are active jobs
+  const hasActiveJobs = useCallback(() => {
+    return activeJobs.length > 0;
+  }, [activeJobs]);
+
   // Stop polling for a job
   const stopPolling = useCallback((jobId: string) => {
     asyncJobService.stopPolling(jobId);
@@ -230,33 +259,6 @@ export const AsyncJobProvider: React.FC<AsyncJobProviderProps> = ({
       next.delete(jobId);
       return next;
     });
-  }, []);
-
-  // Refresh all jobs from backend
-  const refreshJobs = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const userJobs = await asyncJobService.getUserJobs();
-      
-      // Update existing jobs and add new ones
-      setJobs(prev => {
-        const jobMap = new Map(prev.map(j => [j.id, j]));
-        
-        userJobs.forEach(job => {
-          jobMap.set(job.id, job);
-        });
-        
-        return Array.from(jobMap.values());
-      });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh jobs';
-      setError(errorMessage);
-      console.error('Failed to refresh jobs:', err);
-    } finally {
-      setIsLoading(false);
-    }
   }, []);
 
   const value: AsyncJobContextType = {

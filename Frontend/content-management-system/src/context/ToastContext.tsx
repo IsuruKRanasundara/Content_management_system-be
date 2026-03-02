@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { X, CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 
 /**
@@ -41,6 +42,10 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
 }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
+
   const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random()}`;
     const newToast: Toast = { ...toast, id };
@@ -58,11 +63,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
         dismissToast(id);
       }, duration);
     }
-  }, [maxToasts]);
-
-  const dismissToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+  }, [maxToasts, dismissToast]);
 
   const showSuccess = useCallback((title: string, message?: string) => {
     showToast({ type: 'success', title, message, duration: 4000 });
@@ -96,14 +97,6 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </ToastContext.Provider>
   );
-};
-
-export const useToast = (): ToastContextType => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return context;
 };
 
 // Toast Container Component
@@ -202,6 +195,14 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
       </div>
     </div>
   );
+};
+
+export const useToast = (): ToastContextType => {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+  return context;
 };
 
 // Add animation styles to your global CSS
